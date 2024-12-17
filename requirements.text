@@ -1,6 +1,6 @@
-torch>=1.7.0
+streamlit
+torch
 ultralytics
 opencv-python
 Pillow
 PyYAML
-streamlit
