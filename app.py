@@ -1,55 +1,53 @@
-import streamlit as st
-import torch
-from PIL import Image
-import yaml
+import subprocess
+import sys
 import os
+import torch
+import streamlit as st
+from PIL import Image
+from ultralytics import YOLO  # Assure-toi que la bibliothèque ultralytics est installée
 
-# Titre de l'application
-st.title("Application de Scanning avec best.pt")
+# Essayer d'importer torch, sinon l'installer manuellement
+try:
+    import torch
+except ModuleNotFoundError:
+    print("Torch non trouvé, installation en cours...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "torch==2.0.1+cpu", "--index-url", "https://download.pytorch.org/whl/cpu"])
+    import torch
+    print("Torch installé avec succès.")
 
-# Charger le modèle
-@st.cache_resource  # Pour éviter de recharger à chaque interaction
-def load_model(model_path):
-    model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=True)
-    return model
+# Charger le modèle YOLOv8
+def load_model():
+    model_path = "best.pt"  # Modifie ce chemin selon l'emplacement de ton modèle
+    if os.path.exists(model_path):
+        model = YOLO(model_path)
+        return model
+    else:
+        st.error(f"Le modèle {model_path} est introuvable.")
+        return None
 
-# Charger les noms de classes depuis le fichier YAML
-def load_yaml(yaml_path):
-    with open(yaml_path, 'r') as file:
-        data = yaml.safe_load(file)
-    return data.get('names', [])
+# Interface utilisateur Streamlit
+st.title("Application de détection d'objets avec YOLOv8")
 
-# Chemins des fichiers
-MODEL_PATH = "best.pt"
-YAML_PATH = "dama.yaml"
-
-# Charger le modèle et les catégories
-model = load_model(MODEL_PATH)
-categories = load_yaml(YAML_PATH)
-
-# Section pour uploader une image
-uploaded_file = st.file_uploader("Chargez une image à analyser", type=["jpg", "jpeg", "png"])
-
+# Téléchargement de l'image
+uploaded_file = st.file_uploader("Choisissez une image à analyser", type=["jpg", "png", "jpeg"])
 if uploaded_file is not None:
-    # Charger l'image
     image = Image.open(uploaded_file)
     st.image(image, caption="Image téléchargée", use_column_width=True)
 
-    # Analyser l'image avec le modèle
-    results = model(image)
+    # Charger le modèle
+    model = load_model()
+    if model:
+        # Effectuer la détection d'objets
+        results = model(image)  # Prédiction sur l'image téléchargée
 
-    # Afficher les résultats
-    st.subheader("Résultats de l'analyse :")
-    results.print()  # Affiche les résultats dans le terminal (utile pour debug)
+        # Afficher les résultats
+        st.write("Prédictions du modèle :")
+        st.write(results.pandas().xywh)  # Affiche les résultats sous forme de dataframe
 
-    # Visualisation des résultats sur l'image
-    st.image(results.render()[0], caption="Résultats détectés", use_column_width=True)
-
-    # Liste des objets détectés
-    detections = results.pandas().xyxy[0]  # Obtenir les résultats au format pandas
-    if not detections.empty:
-        for index, row in detections.iterrows():
-            st.write(f"Objet détecté : {categories[int(row['class'])]} (Confiance : {row['confidence']:.2f})")
+        # Afficher l'image avec les boîtes de détection
+        annotated_image = results.plot()
+        st.image(annotated_image, caption="Image avec détection d'objets", use_column_width=True)
     else:
-        st.write("Aucun objet détecté.")
+        st.write("Erreur lors du chargement du modèle.")
+
 
