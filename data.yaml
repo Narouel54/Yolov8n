@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 4
+names: ['ANGLE 500x200x200', 'CREUX B40 500x200x200', 'ELITHERM ANGLE B60 500x200x200', 'ELITHERM B60 500x200x200']
+
+roboflow:
+  workspace: detectionblocs
+  project: detection_blocsv1.2
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/detectionblocs/detection_blocsv1.2/dataset/2

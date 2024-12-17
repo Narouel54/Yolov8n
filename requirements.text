@@ -1,0 +1,6 @@
+torch>=1.7.0
+ultralytics
+opencv-python
+Pillow
+PyYAML
+streamlit
